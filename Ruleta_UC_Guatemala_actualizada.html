@@ -315,19 +315,31 @@
         if (!res.ok) throw new Error("Error al obtener datos del servicio");
         const data = await res.json();
 
-        // mapeo usando campos: nombre + apellido (Guatemala)
-        nombres = data.features
-          .map(f => `${f.attributes.nombre} ${f.attributes.apellido}`.trim())
+        const features = Array.isArray(data.features) ? data.features : [];
+
+        nombres = features
+          .map(f => {
+            const nombre = f && f.attributes ? f.attributes.nombre : "";
+            const apellido = f && f.attributes ? f.attributes.apellido : "";
+            return `${nombre} ${apellido}`.trim();
+          })
           .filter(Boolean);
+
+        if (nombres.length === 0) {
+          document.getElementById("listaParticipantes").innerHTML = "<div class='nombre'>No hay participantes disponibles.</div>";
+          return;
+        }
 
         const tamanoGrupo = Math.ceil(nombres.length / 3);
         grupos = [];
-        for (let i = 0; i < nombres.length; i += tamanoGrupo)
+        for (let i = 0; i < nombres.length; i += tamanoGrupo) {
           grupos.push(nombres.slice(i, i + tamanoGrupo));
+        }
 
         cambiarGrupo(0);
       } catch (err) {
         console.error(err);
+        document.getElementById("listaParticipantes").innerHTML = "<div class='nombre'>No se pudo cargar la lista.</div>";
       }
     }
 
@@ -343,7 +355,7 @@
     function actualizarListaParticipantes() {
       const cont = document.getElementById("listaParticipantes");
       cont.innerHTML = "";
-      nombres.slice(0,10).forEach(n => {
+      nombres.slice(0, 10).forEach(n => {
         const div = document.createElement("div");
         div.textContent = n;
         div.className = "nombre";
@@ -354,6 +366,12 @@
     function marcarActivo(nombre) {
       const cont = document.getElementById("listaParticipantes");
       cont.innerHTML = "";
+
+      if (!nombre || !nombres.includes(nombre)) {
+        actualizarListaParticipantes();
+        return;
+      }
+
       let indexActivo = nombres.indexOf(nombre);
       let inicio = Math.max(0, indexActivo - 4);
       let fin = Math.min(nombres.length, inicio + 10);
